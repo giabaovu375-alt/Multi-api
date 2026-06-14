@@ -17,19 +17,38 @@ export interface CallOptions {
 }
 
 function getKey(p: ProviderId): string | undefined {
-  return process.env[PROVIDERS[p].envKey];
+  // Cloudflare Workers không có process.env — thử nhiều cách
+  const key = PROVIDERS[p].envKey;
+  return (
+    process.env[key] ??
+    (globalThis as any).__env__?.[key] ??
+    (globalThis as any)[key] ??
+    undefined
+  );
 }
 
 export function hasProvider(p: ProviderId): boolean {
   if (p === "cloudflare") {
-    return !!getKey(p) && !!process.env.CLOUDFLARE_ACCOUNT_ID;
+    return !!getKey(p) && !!(
+      process.env.CLOUDFLARE_ACCOUNT_ID ??
+      (globalThis as any).__env__?.CLOUDFLARE_ACCOUNT_ID ??
+      (globalThis as any).CLOUDFLARE_ACCOUNT_ID
+    );
   }
   return !!getKey(p);
 }
 
+function getAccountId(): string | undefined {
+  return (
+    process.env.CLOUDFLARE_ACCOUNT_ID ??
+    (globalThis as any).__env__?.CLOUDFLARE_ACCOUNT_ID ??
+    (globalThis as any).CLOUDFLARE_ACCOUNT_ID
+  );
+}
+
 function baseUrlFor(p: ProviderId): string | undefined {
   if (p === "cloudflare") {
-    const acc = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const acc = getAccountId();
     if (!acc) return undefined;
     return `https://api.cloudflare.com/client/v4/accounts/${acc}/ai/v1`;
   }
@@ -141,17 +160,14 @@ export async function callWithFailover(
 }
 
 export function extractJson<T = unknown>(text: string): T {
-  // Strip code fences if present.
   let t = text.trim();
   if (t.startsWith("```")) {
     t = t.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
   }
-  // Find first { or [.
   const start = Math.min(
     ...[t.indexOf("{"), t.indexOf("[")].filter((i) => i >= 0),
   );
   if (Number.isFinite(start) && start > 0) t = t.slice(start);
-  // Trim trailing junk after last } or ].
   const end = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
   if (end >= 0) t = t.slice(0, end + 1);
   return JSON.parse(t) as T;
