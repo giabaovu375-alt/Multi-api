@@ -5,6 +5,17 @@ export const Route = createFileRoute("/api/generate")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // ── DEBUG ENV ──────────────────────────────────────────────────────
+        console.log("[ENV] process.env keys:", Object.keys(process.env));
+        console.log("[ENV] GROQ_API_KEY:", !!process.env.GROQ_API_KEY);
+        console.log("[ENV] SAMBANOVA_API_KEY:", !!process.env.SAMBANOVA_API_KEY);
+        console.log("[ENV] TOGETHER_API_KEY:", !!process.env.TOGETHER_API_KEY);
+        console.log("[ENV] NVIDIA_API_KEY:", !!process.env.NVIDIA_API_KEY);
+        console.log("[ENV] OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
+        console.log("[ENV] MISTRAL_API_KEY:", !!process.env.MISTRAL_API_KEY);
+        console.log("[ENV] globalThis.__env__:", !!(globalThis as any).__env__);
+        // ──────────────────────────────────────────────────────────────────
+
         let body: GenRequest;
         try {
           body = (await request.json()) as GenRequest;
@@ -56,3 +67,4 @@ export const Route = createFileRoute("/api/generate")({
     },
   },
 });
+            
