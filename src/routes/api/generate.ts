@@ -4,17 +4,17 @@ import { runPipeline, type GenRequest, type PipelineEvent } from "@/lib/pipeline
 export const Route = createFileRoute("/api/generate")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        // ── DEBUG ENV ──────────────────────────────────────────────────────
-        console.log("[ENV] process.env keys:", Object.keys(process.env));
+      POST: async ({ request, context }: { request: Request; context?: any }) => {
+        // Cloudflare Workers inject env qua context.env, không phải process.env
+        if (context?.env && typeof context.env === "object") {
+          Object.assign(globalThis, context.env);
+          Object.assign(process.env, context.env);
+        }
+
+        // Debug log
         console.log("[ENV] GROQ_API_KEY:", !!process.env.GROQ_API_KEY);
         console.log("[ENV] SAMBANOVA_API_KEY:", !!process.env.SAMBANOVA_API_KEY);
-        console.log("[ENV] TOGETHER_API_KEY:", !!process.env.TOGETHER_API_KEY);
-        console.log("[ENV] NVIDIA_API_KEY:", !!process.env.NVIDIA_API_KEY);
-        console.log("[ENV] OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
-        console.log("[ENV] MISTRAL_API_KEY:", !!process.env.MISTRAL_API_KEY);
-        console.log("[ENV] globalThis.__env__:", !!(globalThis as any).__env__);
-        // ──────────────────────────────────────────────────────────────────
+        console.log("[ENV] context.env keys:", context?.env ? Object.keys(context.env) : "none");
 
         let body: GenRequest;
         try {
@@ -67,4 +67,3 @@ export const Route = createFileRoute("/api/generate")({
     },
   },
 });
-            
